@@ -1,0 +1,296 @@
+bz #588739 - tuned should not apply /etc/sysctl.ktune settings
+
+commit eb141446432d96f84e223b8e752965bbb36fb44b
+Author: Jan Vcelak <jvcelak@redhat.com>
+Date: Tue, 4 May 2010 14:15:29 +0200
+
+also moves ktune/sysctl.ktune to doc/examples/sysctl.ktune
+
+---
+ Makefile                                           |    7 ++++---
+ tune-profiles/default/ktune.sysconfig              |    2 +-
+ tune-profiles/desktop-powersave/ktune.sysconfig    |    2 +-
+ tune-profiles/laptop-ac-powersave/ktune.sysconfig  |    2 +-
+ .../laptop-battery-powersave/ktune.sysconfig       |    2 +-
+ tune-profiles/latency-performance/ktune.sysconfig  |    2 +-
+ tune-profiles/server-powersave/ktune.sysconfig     |    2 +-
+ tune-profiles/spindown-disk/ktune.sysconfig        |    2 +-
+ .../throughput-performance/ktune.sysconfig         |    2 +-
+ tuned.spec                                         |    3 +--
+ 10 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index e42e061..f0344b8 100644
+--- a/Makefile
++++ b/Makefile
+@@ -7,13 +7,14 @@ DESTDIR = /
+ MANDIR = /usr/share/man/
+ GITTAG = v$(VERSION)
+ 
+-DIRS = doc contrib tuningplugins monitorplugins ktune
++DIRS = doc doc/examples contrib tuningplugins monitorplugins ktune
+ FILES = tuned tuned.spec Makefile tuned.py tuned.initscript tuned.conf tuned-adm tuned_adm.py tuned-adm.pam tuned-adm.consolehelper tuned-adm.conf tuned_nettool.py tuned_logging.py
+ FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes
++FILES_examples = ktune/sysctl.ktune
+ FILES_contrib = contrib/diskdevstat contrib/netdevstat contrib/scomes contrib/varnetload
+ FILES_tuningplugins = tuningplugins/cpu.py tuningplugins/disk.py tuningplugins/net.py tuningplugins/__init__.py
+ FILES_monitorplugins = monitorplugins/cpu.py monitorplugins/disk.py monitorplugins/net.py monitorplugins/__init__.py
+-FILES_ktune = ktune/ktune.init ktune/ktune.sysconfig ktune/sysctl.ktune ktune/README.ktune
++FILES_ktune = ktune/ktune.init ktune/ktune.sysconfig ktune/README.ktune
+ DOCS = AUTHORS ChangeLog COPYING INSTALL NEWS README
+ 
+ distarchive: tag archive
+@@ -27,6 +28,7 @@ archive:
+                 mkdir -p $(VERSIONED_NAME)/$$dir; \
+         done;
+ 	cp $(FILES_doc) $(VERSIONED_NAME)/doc
++	cp $(FILES_examples) $(VERSIONED_NAME)/doc/examples
+ 	cp $(FILES_contrib) $(VERSIONED_NAME)/contrib
+ 	cp $(FILES_tuningplugins) $(VERSIONED_NAME)/tuningplugins
+ 	cp $(FILES_monitorplugins) $(VERSIONED_NAME)/monitorplugins
+@@ -105,7 +107,6 @@ install:
+ 
+ 	# Install ktune
+ 	install -m 755 -d $(DESTDIR)/etc
+-	install -m 644 ktune/sysctl.ktune $(DESTDIR)/etc/
+ 	install -m 755 -d $(DESTDIR)/etc/ktune.d
+ 	install -m 755 -d $(DESTDIR)/etc/sysconfig
+ 	install -m 644 ktune/ktune.sysconfig $(DESTDIR)/etc/sysconfig/ktune
+diff --git a/tune-profiles/default/ktune.sysconfig b/tune-profiles/default/ktune.sysconfig
+index 9529911..ae46fd1 100644
+--- a/tune-profiles/default/ktune.sysconfig
++++ b/tune-profiles/default/ktune.sysconfig
+@@ -2,7 +2,7 @@
+ 
+ # This is the ktune sysctl file.  You can comment this out to prevent ktune
+ # from applying its sysctl settings.
+-SYSCTL="/etc/sysctl.ktune"
++#SYSCTL="/etc/sysctl.ktune"
+ 
+ # Use *.conf files in the ktune configuration directory /etc/ktune.d.
+ #   Value: yes|no,  default: yes
+diff --git a/tune-profiles/desktop-powersave/ktune.sysconfig b/tune-profiles/desktop-powersave/ktune.sysconfig
+index 1534bc7..0302811 100644
+--- a/tune-profiles/desktop-powersave/ktune.sysconfig
++++ b/tune-profiles/desktop-powersave/ktune.sysconfig
+@@ -2,7 +2,7 @@
+ 
+ # This is the ktune sysctl file.  You can comment this out to prevent ktune
+ # from applying its sysctl settings.
+-SYSCTL="/etc/sysctl.ktune"
++#SYSCTL="/etc/sysctl.ktune"
+ 
+ # Use *.conf files in the ktune configuration directory /etc/ktune.d.
+ #   Value: yes|no,  default: yes
+diff --git a/tune-profiles/laptop-ac-powersave/ktune.sysconfig b/tune-profiles/laptop-ac-powersave/ktune.sysconfig
+index 1534bc7..0302811 100644
+--- a/tune-profiles/laptop-ac-powersave/ktune.sysconfig
++++ b/tune-profiles/laptop-ac-powersave/ktune.sysconfig
+@@ -2,7 +2,7 @@
+ 
+ # This is the ktune sysctl file.  You can comment this out to prevent ktune
+ # from applying its sysctl settings.
+-SYSCTL="/etc/sysctl.ktune"
++#SYSCTL="/etc/sysctl.ktune"
+ 
+ # Use *.conf files in the ktune configuration directory /etc/ktune.d.
+ #   Value: yes|no,  default: yes
+diff --git a/tune-profiles/laptop-battery-powersave/ktune.sysconfig b/tune-profiles/laptop-battery-powersave/ktune.sysconfig
+index 1534bc7..0302811 100644
+--- a/tune-profiles/laptop-battery-powersave/ktune.sysconfig
++++ b/tune-profiles/laptop-battery-powersave/ktune.sysconfig
+@@ -2,7 +2,7 @@
+ 
+ # This is the ktune sysctl file.  You can comment this out to prevent ktune
+ # from applying its sysctl settings.
+-SYSCTL="/etc/sysctl.ktune"
++#SYSCTL="/etc/sysctl.ktune"
+ 
+ # Use *.conf files in the ktune configuration directory /etc/ktune.d.
+ #   Value: yes|no,  default: yes
+diff --git a/tune-profiles/latency-performance/ktune.sysconfig b/tune-profiles/latency-performance/ktune.sysconfig
+index a49512b..d2091b5 100644
+--- a/tune-profiles/latency-performance/ktune.sysconfig
++++ b/tune-profiles/latency-performance/ktune.sysconfig
+@@ -2,7 +2,7 @@
+ 
+ # This is the ktune sysctl file.  You can comment this out to prevent ktune
+ # from applying its sysctl settings.
+-SYSCTL="/etc/sysctl.ktune"
++#SYSCTL="/etc/sysctl.ktune"
+ 
+ # Use *.conf files in the ktune configuration directory /etc/ktune.d.
+ #   Value: yes|no,  default: yes
+diff --git a/tune-profiles/server-powersave/ktune.sysconfig b/tune-profiles/server-powersave/ktune.sysconfig
+index 1534bc7..0302811 100644
+--- a/tune-profiles/server-powersave/ktune.sysconfig
++++ b/tune-profiles/server-powersave/ktune.sysconfig
+@@ -2,7 +2,7 @@
+ 
+ # This is the ktune sysctl file.  You can comment this out to prevent ktune
+ # from applying its sysctl settings.
+-SYSCTL="/etc/sysctl.ktune"
++#SYSCTL="/etc/sysctl.ktune"
+ 
+ # Use *.conf files in the ktune configuration directory /etc/ktune.d.
+ #   Value: yes|no,  default: yes
+diff --git a/tune-profiles/spindown-disk/ktune.sysconfig b/tune-profiles/spindown-disk/ktune.sysconfig
+index 6ac5f42..cbf52b7 100644
+--- a/tune-profiles/spindown-disk/ktune.sysconfig
++++ b/tune-profiles/spindown-disk/ktune.sysconfig
+@@ -2,7 +2,7 @@
+ 
+ # This is the ktune sysctl file.  You can comment this out to prevent ktune
+ # from applying its sysctl settings.
+-SYSCTL="/etc/sysctl.ktune"
++#SYSCTL="/etc/sysctl.ktune"
+ 
+ # Use *.conf files in the ktune configuration directory /etc/ktune.d.
+ #   Value: yes|no,  default: yes
+diff --git a/tune-profiles/throughput-performance/ktune.sysconfig b/tune-profiles/throughput-performance/ktune.sysconfig
+index a49512b..d2091b5 100644
+--- a/tune-profiles/throughput-performance/ktune.sysconfig
++++ b/tune-profiles/throughput-performance/ktune.sysconfig
+@@ -2,7 +2,7 @@
+ 
+ # This is the ktune sysctl file.  You can comment this out to prevent ktune
+ # from applying its sysctl settings.
+-SYSCTL="/etc/sysctl.ktune"
++#SYSCTL="/etc/sysctl.ktune"
+ 
+ # Use *.conf files in the ktune configuration directory /etc/ktune.d.
+ #   Value: yes|no,  default: yes
+diff --git a/tuned.spec b/tuned.spec
+index 1ba30da..fc6fba9 100644
+--- a/tuned.spec
++++ b/tuned.spec
+@@ -72,7 +72,7 @@ fi
+ 
+ %files
+ %defattr(-,root,root,-)
+-%doc AUTHORS ChangeLog COPYING INSTALL NEWS README doc/DESIGN.txt doc/TIPS.txt ktune/README.ktune
++%doc AUTHORS ChangeLog COPYING INSTALL NEWS README doc/DESIGN.txt doc/TIPS.txt ktune/README.ktune doc/examples
+ %{_initddir}/tuned
+ %config(noreplace) %{_sysconfdir}/tuned.conf
+ %config(noreplace) %{_sysconfdir}/pam.d/tuned-adm
+@@ -89,7 +89,6 @@ fi
+ %{_mandir}/man8/*
+ %attr(0755,root,root) %{_initddir}/ktune
+ %config(noreplace) %attr(0644,root,root) %{_sysconfdir}/sysconfig/ktune
+-%config(noreplace) %attr(0644,root,root) %{_sysconfdir}/sysctl.ktune
+ %dir %attr(0755,root,root) %{_sysconfdir}/ktune.d
+ %dir /var/log/tuned
+ 
+-- 
+1.6.6.1
+
+diff -u -urpN a/doc/examples/sysctl.ktune b/doc/examples/sysctl.ktune
+--- a/doc/examples/sysctl.ktune
++++ b/doc/examples/sysctl.ktune
+@@ -0,0 +1,51 @@
++# ktune sysctl settings for EL 5 servers
++
++# 256 KB default performs well experimentally, and is often recommended by ISVs.
++net.core.rmem_default = 262144
++net.core.wmem_default = 262144
++
++# When opening a high-bandwidth connection while the receiving end is under
++# memory pressure, disk I/O may be necessary to free memory for the socket,
++# making disk latency the effective latency for the bandwidth-delay product
++# initially.  For 10 Gb ethernet and SCSI, the BDP is about 5 MB.  Allow 8 MB
++# to account for overhead, to ensure that new sockets can saturate the medium
++# quickly.
++net.core.rmem_max = 8388608
++net.core.wmem_max = 8388608
++
++# Allow a deep backlog for 10 Gb and bonded Gb ethernet connections
++net.core.netdev_max_backlog = 10000
++
++# Always have one page available, plus an extra for overhead, to ensure TCP NFS
++# pageout doesn't stall under memory pressure.  Default to max unscaled window,
++# plus overhead for rmem, since most LAN sockets won't need to scale.
++net.ipv4.tcp_rmem = 8192 87380 8388608
++net.ipv4.tcp_wmem = 8192 65536 8388608
++
++# Always have enough memory available on a UDP socket for an 8k NFS request,
++# plus overhead, to prevent NFS stalling under memory pressure.  16k is still
++# low enough that memory fragmentation is unlikely to cause problems.
++net.ipv4.udp_rmem_min = 16384
++net.ipv4.udp_wmem_min = 16384
++
++# Ensure there's enough memory to actually allocate those massive buffers to a
++# socket.
++net.ipv4.tcp_mem = 8388608 12582912 16777216
++net.ipv4.udp_mem = 8388608 12582912 16777216
++
++# Filesystem I/O is usually much more efficient than swapping, so try to keep
++# swapping low.  It's usually safe to go even lower than this on systems with
++# server-grade storage.
++vm.swappiness = 30
++
++# If a workload mostly uses anonymous memory and it hits this limit, the entire
++# working set is buffered for I/O, and any more write buffering would require
++# swapping, so it's time to throttle writes until I/O can catch up.  Workloads
++# that mostly use file mappings may be able to use even higher values.
++vm.dirty_ratio = 50
++
++# Ensure there's always some easily-dropped pagecache if the system is under
++# memory pressure from cached files, since it's much faster to page back in than
++# swap.
++# Doesn't exist for 2.6.30++ anymore
++# vm.pagecache = 90
+diff -u -urpN a/ktune/sysctl.ktune b/ktune/sysctl.ktune
+--- a/ktune/sysctl.ktune
++++ b/ktune/sysctl.ktune
+@@ -1,51 +0,0 @@
+-# ktune sysctl settings for EL 5 servers
+-
+-# 256 KB default performs well experimentally, and is often recommended by ISVs.
+-net.core.rmem_default = 262144
+-net.core.wmem_default = 262144
+-
+-# When opening a high-bandwidth connection while the receiving end is under
+-# memory pressure, disk I/O may be necessary to free memory for the socket,
+-# making disk latency the effective latency for the bandwidth-delay product
+-# initially.  For 10 Gb ethernet and SCSI, the BDP is about 5 MB.  Allow 8 MB
+-# to account for overhead, to ensure that new sockets can saturate the medium
+-# quickly.
+-net.core.rmem_max = 8388608
+-net.core.wmem_max = 8388608
+-
+-# Allow a deep backlog for 10 Gb and bonded Gb ethernet connections
+-net.core.netdev_max_backlog = 10000
+-
+-# Always have one page available, plus an extra for overhead, to ensure TCP NFS
+-# pageout doesn't stall under memory pressure.  Default to max unscaled window,
+-# plus overhead for rmem, since most LAN sockets won't need to scale.
+-net.ipv4.tcp_rmem = 8192 87380 8388608
+-net.ipv4.tcp_wmem = 8192 65536 8388608
+-
+-# Always have enough memory available on a UDP socket for an 8k NFS request,
+-# plus overhead, to prevent NFS stalling under memory pressure.  16k is still
+-# low enough that memory fragmentation is unlikely to cause problems.
+-net.ipv4.udp_rmem_min = 16384
+-net.ipv4.udp_wmem_min = 16384
+-
+-# Ensure there's enough memory to actually allocate those massive buffers to a
+-# socket.
+-net.ipv4.tcp_mem = 8388608 12582912 16777216
+-net.ipv4.udp_mem = 8388608 12582912 16777216
+-
+-# Filesystem I/O is usually much more efficient than swapping, so try to keep
+-# swapping low.  It's usually safe to go even lower than this on systems with
+-# server-grade storage.
+-vm.swappiness = 30
+-
+-# If a workload mostly uses anonymous memory and it hits this limit, the entire
+-# working set is buffered for I/O, and any more write buffering would require
+-# swapping, so it's time to throttle writes until I/O can catch up.  Workloads
+-# that mostly use file mappings may be able to use even higher values.
+-vm.dirty_ratio = 50
+-
+-# Ensure there's always some easily-dropped pagecache if the system is under
+-# memory pressure from cached files, since it's much faster to page back in than
+-# swap.
+-# Doesn't exist for 2.6.30++ anymore
+-# vm.pagecache = 90

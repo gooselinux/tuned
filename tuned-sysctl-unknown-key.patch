@@ -1,0 +1,28 @@
+bz #577971 - error: "net.bridge.bridge-nf-call-ip6tables" is an unknown key
+
+commit 9e5a9880a0c00fd88fbea6caf443b4c809c7b994
+Author: Thomas Woerner <twoerner@redhat.com>
+Date: Tue, 4 May 2010 11:46:06 +0200
+
+---
+ ktune/ktune.init |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/ktune/ktune.init b/ktune/ktune.init
+index d5d0cb5..5f2b9ad 100644
+--- a/ktune/ktune.init
++++ b/ktune/ktune.init
+@@ -113,8 +113,8 @@ load_sysctl() {
+ 
+         # Apply general sysctl settings afterwards
+ 	if [ -r "$SYSCTL_POST" ]; then
+-	    echo -n $"Applying sysctl settings from $SYSCTL_POST: "
+-	    load_file "$SYSCTL_POST" 1
++	    echo $"Applying sysctl settings from $SYSCTL_POST"
++	    sysctl -e -p "$SYSCTL_POST" >/dev/null 2>&1
+ 	fi
+     fi
+ }
+-- 
+1.6.6.1
+
