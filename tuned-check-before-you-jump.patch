@@ -1,0 +1,59 @@
+From bdd933246b31ce7897b47985058c0987ea30f9c1 Mon Sep 17 00:00:00 2001
+From: Jarod Wilson <jarod@redhat.com>
+Date: Tue, 17 Aug 2010 13:16:58 -0400
+Subject: [PATCH 1/2] throughput-performance: don't twiddle cpufreq or hugepages if not supported
+
+Signed-off-by: Jarod Wilson <jarod@redhat.com>
+---
+ tune-profiles/throughput-performance/ktune.sh |   14 ++++++++------
+ 1 files changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/tune-profiles/throughput-performance/ktune.sh b/tune-profiles/throughput-performance/ktune.sh
+index 79ef831..5ebce31 100755
+--- a/tune-profiles/throughput-performance/ktune.sh
++++ b/tune-profiles/throughput-performance/ktune.sh
+@@ -13,7 +13,7 @@ THP_ENABLE="/sys/kernel/mm/redhat_transparent_hugepage/enabled"
+ THP_SAVE="/var/run/tuned/ktune-thp.save"
+ 
+ start() {
+-	# Enable performance CPU governor (prefer cpuspeed)
++	# Enable performance CPU governor (prefer cpuspeed), if freq scaling is supported
+ 	if [ -e $CPUSPEED_INIT ]; then
+ 		if [ ! -e $CPUSPEED_SAVE_FILE -a -e $CPUSPEED_CFG ]; then
+ 			cp -p $CPUSPEED_CFG $CPUSPEED_SAVE_FILE
+@@ -24,7 +24,7 @@ start() {
+ 		[ $? -eq 3 ] && touch $CPUSPEED_STARTED || rm -f $CPUSPEED_STARTED
+ 
+ 		service cpuspeed restart >/dev/null 2>&1
+-	else
++	elif [ -e /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
+ 		echo >/dev/stderr
+ 		echo "Suggestion: install 'cpuspeed' package to get best performance and latency." >/dev/stderr
+ 		echo "Falling back to 'performance' scaling governor for all CPUs." >/dev/stderr
+@@ -41,9 +41,11 @@ start() {
+ 		done
+ 	fi
+ 
+-	# Make sure transparent hugepages are enabled
+-	cut -f2 -d'[' $THP_ENABLE  | cut -f1 -d']' > $THP_SAVE
+-	(echo always > $THP_ENABLE) > /dev/null 2>&1
++	# Make sure transparent hugepages are enabled (if supported)
++	if [ -e $THP_ENABLE ]; then
++		cut -f2 -d'[' $THP_ENABLE  | cut -f1 -d']' > $THP_SAVE
++		(echo always > $THP_ENABLE) > /dev/null 2>&1
++	fi
+ 
+ 	return 0
+ }
+@@ -62,7 +64,7 @@ stop() {
+ 		else
+ 			service cpuspeed restart >/dev/null 2>&1
+ 		fi
+-	else
++	elif [ -e /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
+ 		for cpu in $CPUS; do
+ 			cpufreq_dir=/sys/devices/system/cpu/$cpu/cpufreq
+ 			save_file=$(printf $CPUSPEED_ORIG_GOV $cpu)
+-- 
+1.7.2.1
+

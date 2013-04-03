@@ -1,0 +1,45 @@
+From e78494e1c5d3683df4dac8984f4845204f348a54 Mon Sep 17 00:00:00 2001
+From: Jan Vcelak <jvcelak@redhat.com>
+Date: Wed, 29 Sep 2010 09:12:05 +0200
+Subject: [PATCH] profiles: apply IO scheduler changes to dm devices
+
+Resolves: #636548
+---
+ tune-profiles/enterprise-storage/ktune.sysconfig   |    2 +-
+ tune-profiles/latency-performance/ktune.sysconfig  |    2 +-
+ .../throughput-performance/ktune.sysconfig         |    2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/tune-profiles/enterprise-storage/ktune.sysconfig b/tune-profiles/enterprise-storage/ktune.sysconfig
+index d2091b5..4be99a6 100644
+--- a/tune-profiles/enterprise-storage/ktune.sysconfig
++++ b/tune-profiles/enterprise-storage/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-}*/queue/scheduler"
+diff --git a/tune-profiles/latency-performance/ktune.sysconfig b/tune-profiles/latency-performance/ktune.sysconfig
+index d2091b5..4be99a6 100644
+--- a/tune-profiles/latency-performance/ktune.sysconfig
++++ b/tune-profiles/latency-performance/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-}*/queue/scheduler"
+diff --git a/tune-profiles/throughput-performance/ktune.sysconfig b/tune-profiles/throughput-performance/ktune.sysconfig
+index d2091b5..4be99a6 100644
+--- a/tune-profiles/throughput-performance/ktune.sysconfig
++++ b/tune-profiles/throughput-performance/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-}*/queue/scheduler"
+-- 
+1.7.2.3
+

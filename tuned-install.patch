@@ -1,0 +1,93 @@
+Fixes fresh installation. Configuration files are symbolic links into default
+profile. Also solves SELinux required changes introduced by profiles update.
+
+12968c1 fixed symlinks to configuration files
+02c585d tuned-adm: replaced tuned-adm.conf
+d8fa2ca tuned: pid file moved to /var/run/tuned/tuned.pid
+01230c0 tuned: added /var/run/tuned into specfile
+
+-----
+diff -ruNP tuned-0.2.11.old/Makefile tuned-0.2.11.new/Makefile
+--- tuned-0.2.11.old/Makefile	2010-07-14 14:00:14.256555800 +0200
++++ tuned-0.2.11.new/Makefile	2010-07-14 14:03:28.742690643 +0200
+@@ -8,7 +8,7 @@
+ GITTAG = v$(VERSION)
+ 
+ DIRS = doc doc/examples contrib tuningplugins monitorplugins ktune
+-FILES = tuned tuned.spec Makefile tuned.py tuned.initscript tuned.conf tuned-adm tuned_adm.py tuned-adm.pam tuned-adm.consolehelper tuned-adm.conf tuned_nettool.py tuned_logging.py
++FILES = tuned tuned.spec Makefile tuned.py tuned.initscript tuned.conf tuned-adm tuned_adm.py tuned-adm.pam tuned-adm.consolehelper tuned_nettool.py tuned_logging.py
+ FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes
+ FILES_examples = ktune/sysctl.ktune
+ FILES_contrib = contrib/diskdevstat contrib/netdevstat contrib/scomes contrib/varnetload
+@@ -17,6 +17,8 @@
+ FILES_ktune = ktune/ktune.init ktune/ktune.sysconfig ktune/README.ktune
+ DOCS = AUTHORS ChangeLog COPYING INSTALL NEWS README
+ 
++DEFAULT_PROFILE = default
++
+ distarchive: tag archive
+ 
+ archive:
+@@ -89,7 +91,7 @@
+ 
+ 	# Install config file
+ 	mkdir -p $(DESTDIR)/etc
+-	install -m 0644 tuned.conf $(DESTDIR)/etc
++	ln -s /etc/tune-profiles/$(DEFAULT_PROFILE)/tuned.conf $(DESTDIR)/etc/tuned.conf
+ 
+ 	mkdir -p $(DESTDIR)/etc/tune-profiles/
+ 
+@@ -109,18 +111,22 @@
+ 	install -m 755 -d $(DESTDIR)/etc
+ 	install -m 755 -d $(DESTDIR)/etc/ktune.d
+ 	install -m 755 -d $(DESTDIR)/etc/sysconfig
+-	install -m 644 ktune/ktune.sysconfig $(DESTDIR)/etc/sysconfig/ktune
+ 	install -m 755 -d $(DESTDIR)/etc/rc.d/init.d
+ 	install -m 755 ktune/ktune.init $(DESTDIR)/etc/rc.d/init.d/ktune
++	ln -s /etc/tune-profiles/$(DEFAULT_PROFILE)/ktune.sysconfig $(DESTDIR)/etc/sysconfig/ktune
++	ln -s /etc/tune-profiles/$(DEFAULT_PROFILE)/sysctl.ktune $(DESTDIR)/etc/ktune.d/tunedadm.conf
+ 
+ 	# Install tune-profiles
+ 	install -m 755 -d $(DESTDIR)/etc/tune-profiles
+ 	cp -a tune-profiles/* $(DESTDIR)/etc/tune-profiles
+-	install -m 0644 tuned-adm.conf $(DESTDIR)//etc/tune-profiles/active-profile
++	echo -n $(DEFAULT_PROFILE) >$(DESTDIR)/etc/tune-profiles/active-profile
+ 
+ 	# Create log directory
+ 	mkdir -p $(DESTDIR)/var/log/tuned
+ 
++	# Create runtime directory
++	mkdir -p $(DESTDIR)/var/run/tuned
++
+ changelog:
+ 	git log > ChangeLog
+ 
+diff -ruNP tuned-0.2.11.old/tuned-adm.conf tuned-0.2.11.new/tuned-adm.conf
+--- tuned-0.2.11.old/tuned-adm.conf	2010-03-23 13:50:59.000000000 +0100
++++ tuned-0.2.11.new/tuned-adm.conf	1970-01-01 01:00:00.000000000 +0100
+@@ -1 +0,0 @@
+-default
+diff -ruNP tuned-0.2.11.old/tuned.conf tuned-0.2.11.new/tuned.conf
+--- tuned-0.2.11.old/tuned.conf	2010-03-23 13:50:59.000000000 +0100
++++ tuned-0.2.11.new/tuned.conf	2010-07-14 14:02:34.922556214 +0200
+@@ -23,7 +23,7 @@
+ [main]
+ # Interval for monitoring and tuning. Default is 10s.
+ # interval=10
+-# pidfile=/var/run/tuned.pid
++# pidfile=/var/run/tuned/tuned.pid
+ logging=info
+ logging_disable=notset
+ 
+diff -ruNP tuned-0.2.11.old/tuned.py tuned-0.2.11.new/tuned.py
+--- tuned-0.2.11.old/tuned.py	2010-03-23 13:50:59.000000000 +0100
++++ tuned-0.2.11.new/tuned.py	2010-07-14 14:02:34.922556214 +0200
+@@ -75,7 +75,7 @@
+ 		if self.config.has_option("main", "pidfile"):
+ 			self.pidfile = self.config.get("main", "pidfile")
+ 		else:
+-			self.pidfile = "/var/run/tuned.pid"
++			self.pidfile = "/var/run/tuned/tuned.pid"
+ 
+ 		# loading, setting logging level and initializing plugins
+ 

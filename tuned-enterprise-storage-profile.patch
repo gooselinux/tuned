@@ -1,0 +1,257 @@
+ tune-profiles/enterprise-storage/ktune.sh        |  171 ++++++++++++++++++++++
+ tune-profiles/enterprise-storage/ktune.sysconfig |   27 ++++
+ tune-profiles/enterprise-storage/sysctl.ktune    |   36 +++++
+ 3 files changed, 234 insertions(+), 0 deletions(-)
+
+diff --git a/tune-profiles/enterprise-storage/ktune.sh b/tune-profiles/enterprise-storage/ktune.sh
+new file mode 100755
+index 0000000..62c7f9a
+--- /dev/null
++++ b/tune-profiles/enterprise-storage/ktune.sh
+@@ -0,0 +1,171 @@
++#!/bin/sh
++
++VAR_SUBSYS_KTUNE="/var/lock/subsys/ktune"
++
++CPUSPEED_SAVE_FILE="/var/run/tuned/ktune-cpuspeed.save"
++CPUSPEED_ORIG_GOV="/var/run/tuned/ktune-cpuspeed-governor-%s.save"
++CPUSPEED_STARTED="/var/run/tuned/ktune-cpuspeed-started"
++CPUSPEED_CFG="/etc/sysconfig/cpuspeed"
++CPUSPEED_INIT="/etc/init.d/cpuspeed"
++CPUS="$(ls -d1 /sys/devices/system/cpu/cpu* | sed 's;^.*/;;' |  grep "cpu[0-9]\+")"
++
++THP_ENABLE="/sys/kernel/mm/redhat_transparent_hugepage/enabled"
++THP_SAVE="/var/run/tuned/ktune-thp.save"
++
++start() {
++	# Enable performance CPU governor (prefer cpuspeed), if freq scaling is supported
++	if [ -e $CPUSPEED_INIT ]; then
++		if [ ! -e $CPUSPEED_SAVE_FILE -a -e $CPUSPEED_CFG ]; then
++			cp -p $CPUSPEED_CFG $CPUSPEED_SAVE_FILE
++			sed -e 's/^GOVERNOR=.*/GOVERNOR=performance/g' $CPUSPEED_SAVE_FILE > $CPUSPEED_CFG
++		fi
++
++		service cpuspeed status >/dev/null 2>&1
++		[ $? -eq 3 ] && touch $CPUSPEED_STARTED || rm -f $CPUSPEED_STARTED
++
++		service cpuspeed restart >/dev/null 2>&1
++	elif [ -e /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
++		echo >/dev/stderr
++		echo "Suggestion: install 'cpuspeed' package to get best performance and latency." >/dev/stderr
++		echo "Falling back to 'performance' scaling governor for all CPUs." >/dev/stderr
++		echo >/dev/stderr
++
++		for cpu in $CPUS; do
++			gov_file=/sys/devices/system/cpu/$cpu/cpufreq/scaling_governor
++			save_file=$(printf $CPUSPEED_ORIG_GOV $cpu)
++			rm -f $save_file
++			if [ -e $gov_file ]; then
++				cat $gov_file > $save_file
++				echo performance > $gov_file
++			fi
++		done
++	fi
++
++	# Make sure transparent hugepages are enabled (if supported)
++	if [ -e $THP_ENABLE ]; then
++		cut -f2 -d'[' $THP_ENABLE  | cut -f1 -d']' > $THP_SAVE
++		(echo always > $THP_ENABLE) > /dev/null 2>&1
++	fi
++
++	# Find non-root and non-boot partitions, disable barriers on them
++	rootvol=$(df -h / | grep "^/dev" | awk '{print $1}')
++	bootvol=$(df -h /boot | grep "^/dev" | awk '{print $1}')
++	volumes=$(df -hl --exclude=tmpfs | grep "^/dev" | awk '{print $1}')
++
++	nobarriervols=$(echo "$volumes" | grep -v $rootvol | grep -v $bootvol)
++	for vol in $nobarriervols
++	do
++		/bin/mount -o remount,nobarrier $vol > /dev/null 2>&1
++	done
++
++	# Increase the readahead value on all volumes
++	readaheadvols=$(ls /sys/block/{sd,cciss}*/queue/read_ahead_kb 2>/dev/null)
++	for d in $readaheadvols
++	do
++		(echo 512 > $d) > /dev/null 2>&1
++	done
++
++	return 0
++}
++
++stop() {
++	# Re-enable previous CPU governor
++	if [ -e $CPUSPEED_INIT ]; then
++		if [ -e $CPUSPEED_SAVE_FILE ]; then
++			cp -fp $CPUSPEED_SAVE_FILE $CPUSPEED_CFG
++			rm -f $CPUSPEED_SAVE_FILE
++		fi
++
++		if [ -e $CPUSPEED_STARTED ]; then
++			rm -f $CPUSPEED_STARTED
++			service cpuspeed stop >/dev/null 2>&1
++		else
++			service cpuspeed restart >/dev/null 2>&1
++		fi
++	elif [ -e /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor ]; then
++		for cpu in $CPUS; do
++			cpufreq_dir=/sys/devices/system/cpu/$cpu/cpufreq
++			save_file=$(printf $CPUSPEED_ORIG_GOV $cpu)
++
++			if [ -e $cpufreq_dir/scaling_governor ]; then
++				if [ -e $save_file ]; then
++					cat $save_file > $cpufreq_dir/scaling_governor
++					rm -f $save_file
++				else
++					echo userspace > $cpufreq_dir/scaling_governor
++					cat $cpufreq_dir/cpuinfo_max_freq > $cpufreq_dir/scaling_setspeed
++				fi
++			fi
++		done
++	fi
++
++	# Restore transparent hugepages setting
++	if [ -e $THP_SAVE ]; then
++		(echo $(cat $THP_SAVE) > $THP_ENABLE) > /dev/null 2>&1
++		rm -f $THP_SAVE
++	fi
++
++	# Find non-root and non-boot partitions, re-enable barriers
++	rootvol=$(df -h / | grep "^/dev" | awk '{print $1}')
++	bootvol=$(df -h /boot | grep "^/dev" | awk '{print $1}')
++	volumes=$(df -hl --exclude=tmpfs | grep "^/dev" | awk '{print $1}')
++
++	nobarriervols=$(echo "$volumes" | grep -v $rootvol | grep -v $bootvol)
++	for vol in $nobarriervols
++	do
++		/bin/mount -o remount,barrier $vol > /dev/null 2>&1
++	done
++
++	# Reset default readahead value on all volumes
++	readaheadvols=$(ls /sys/block/{sd,cciss}*/queue/read_ahead_kb 2>/dev/null)
++	for d in $readaheadvols
++	do
++		(echo 128 > $d) > /dev/null 2>&1
++	done
++
++	return 0
++}
++
++reload() {
++	start
++}
++
++status() {
++	return 0
++}
++
++case "$1" in
++    start)
++        [ -f "$VAR_SUBSYS_KTUNE" ] && exit 0
++        start
++        RETVAL=$?
++        ;;
++    stop)
++        [ -f "$VAR_SUBSYS_KTUNE" ] || exit 0
++        stop
++        RETVAL=$?
++        ;;
++    reload)
++        [ -f "$VAR_SUBSYS_KTUNE" ] && reload
++        RETVAL=$?
++        ;;
++    restart|force-reload)
++        [ -f "$VAR_SUBSYS_KTUNE" ] && stop
++        start
++        RETVAL=$?
++        ;;
++    condrestart|try-restart)
++        [ -f "$VAR_SUBSYS_KTUNE" ] || exit 0
++        stop
++        start
++        RETVAL=$?
++        ;;
++    status)
++        status
++        RETVAL=$?
++        ;;
++    *)
++        echo $"Usage: $0 {start|stop|restart|condrestart|status}"
++        RETVAL=2
++        ;;
++esac
+diff --git a/tune-profiles/enterprise-storage/ktune.sysconfig b/tune-profiles/enterprise-storage/ktune.sysconfig
+new file mode 100644
+index 0000000..d2091b5
+--- /dev/null
++++ b/tune-profiles/enterprise-storage/ktune.sysconfig
+@@ -0,0 +1,27 @@
++# ktune service configuration
++
++# This is the ktune sysctl file.  You can comment this out to prevent ktune
++# from applying its sysctl settings.
++#SYSCTL="/etc/sysctl.ktune"
++
++# Use *.conf files in the ktune configuration directory /etc/ktune.d.
++#   Value: yes|no,  default: yes
++# It is useful if you want to load settings from additional files. Set this to
++# no if you to prevent ktune from using these additional files.
++USE_KTUNE_D="yes"
++
++# This is the custom sysctl configuration file.  Any settings in this file will
++# be applied after the ktune settings, overriding them.  Comment this out to
++# use only the ktune settings.
++SYSCTL_POST="/etc/sysctl.conf"
++
++# This is the I/O scheduler ktune will use.  This will *not* override anything
++# explicitly set on the kernel command line, nor will it change the scheduler
++# for any block device that is using a non-default scheduler when ktune starts.
++# You should probably leave this on "deadline", but "as", "cfq", and "noop" are
++# also legal values.  Comment this out to prevent ktune from changing I/O
++# scheduler settings.
++ELEVATOR="deadline"
++
++# These are the devices, that should be tuned with the ELEVATOR
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
+diff --git a/tune-profiles/enterprise-storage/sysctl.ktune b/tune-profiles/enterprise-storage/sysctl.ktune
+new file mode 100644
+index 0000000..f7ea431
+--- /dev/null
++++ b/tune-profiles/enterprise-storage/sysctl.ktune
+@@ -0,0 +1,36 @@
++# ktune sysctl settings for rhel6 servers with enterprise-class
++# storage, maximizing i/o throughput
++#
++# Minimal preemption granularity for CPU-bound tasks:
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++kernel.sched_min_granularity_ns = 10000000
++
++# SCHED_OTHER wake-up granularity.
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++#
++# This option delays the preemption effects of decoupled workloads
++# and reduces their over-scheduling. Synchronous workloads will still
++# have immediate wakeup/sleep latencies.
++kernel.sched_wakeup_granularity_ns = 15000000
++
++# If a workload mostly uses anonymous memory and it hits this limit, the entire
++# working set is buffered for I/O, and any more write buffering would require
++# swapping, so it's time to throttle writes until I/O can catch up.  Workloads
++# that mostly use file mappings may be able to use even higher values.
++#
++# The generator of dirty data starts writeback at this percentage (system default
++# is 20%)
++vm.dirty_ratio = 40
++
++# Start background writeback (via writeback threads) at this percentage (system
++# default is 10%)
++#vm.dirty_background_ratio = 15
++
++# PID allocation wrap value.  When the kernel's next PID value
++# reaches this value, it wraps back to a minimum PID value.
++# PIDs of value pid_max or larger are not allocated.
++#
++# A suggested value for pid_max is 1024 * <# of cpu cores/threads in system>
++# e.g., a box with 32 cpus, the default of 32768 is reasonable, for 64 cpus,
++# 65536, for 4096 cpus, 4194304 (which is the upper limit possible).
++#kernel.pid_max = 65536
